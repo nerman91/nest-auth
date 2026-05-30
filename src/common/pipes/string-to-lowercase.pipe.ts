@@ -1,8 +1,8 @@
-import { ArgumentMetadata, Injectable, PipeTransform } from '@nestjs/common';
+import { Injectable, PipeTransform } from '@nestjs/common';
 
 @Injectable()
 export class StringToLowercasePipe implements PipeTransform {
-  transform(value: unknown, metadata: ArgumentMetadata) {
+  transform(value: unknown) {
     if (typeof value === 'string') {
       return value.toLowerCase();
     }

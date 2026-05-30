@@ -101,7 +101,7 @@ export class AuthService {
   }
 
   logout(res: Response) {
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', this.getCookieOptions());
   }
 
   async refresh(req: Request, res: Response) {
@@ -112,51 +112,68 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token not found');
     }
 
-    const payload: { id: string } =
-      await this.jwtService.verifyAsync(refreshToken);
+    const payload = await this.jwtService.verifyAsync<{ id: string }>(
+      refreshToken,
+    );
 
-    if (payload) {
-      const user = await this.prismaService.user.findUnique({
-        where: {
-          id: payload.id,
-        },
-      });
+    const user = await this.prismaService.user.findUnique({
+      where: { id: payload.id },
+    });
 
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-
-      return this.auth(res, user.id);
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
+
+    return this.auth(res, user.id);
   }
 
   private auth(res: Response, id: string) {
     const { accessToken, refreshToken } = this.generateTokens(id);
 
-    this.setTokenCookie(
-      res,
-      refreshToken,
-      new Date(Date.now() + 60 * 60 * 1000), // 60 minutes
-    );
+    this.setTokenCookie(res, refreshToken);
 
     return { accessToken };
   }
 
-  private setTokenCookie(res: Response, value: string, expires: Date) {
-    return res.cookie('refreshToken', value, {
+  private getCookieOptions() {
+    const dev = isDev(this.configService);
+
+    return {
       httpOnly: true,
       domain: this.COOKIE_DOMAIN,
+      secure: !dev,
+      sameSite: dev ? ('lax' as const) : ('strict' as const),
+    };
+  }
+
+  private setTokenCookie(res: Response, value: string) {
+    const expires = this.getRefreshTokenExpiry(value);
+
+    return res.cookie('refreshToken', value, {
+      ...this.getCookieOptions(),
       expires,
-      secure: !isDev(this.configService),
-      sameSite: isDev(this.configService) ? 'none' : 'lax',
     });
+  }
+
+  private getRefreshTokenExpiry(token: string): Date | undefined {
+    const decoded: unknown = this.jwtService.decode(token);
+
+    if (
+      typeof decoded !== 'object' ||
+      decoded === null ||
+      !('exp' in decoded) ||
+      typeof decoded.exp !== 'number'
+    ) {
+      return undefined;
+    }
+
+    return new Date(decoded.exp * 1000);
   }
 
   async validateUser(id: string) {
     const user = await this.prismaService.user.findUnique({
-      where: {
-        id,
-      },
+      where: { id },
+      omit: { password: true },
     });
 
     if (!user) {

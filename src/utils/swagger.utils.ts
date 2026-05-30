@@ -9,6 +9,6 @@ export const setupSwagger = (app: INestApplication) => {
   SwaggerModule.setup('api', app, document, {
     jsonDocumentUrl: 'api-json',
     yamlDocumentUrl: 'api-yaml',
-    customSiteTitle: 'Awesome NestJS API Documentation',
+    customSiteTitle: 'Nest Auth API Documentation',
   });
 };

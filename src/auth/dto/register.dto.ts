@@ -18,8 +18,9 @@ export class RegisterRequestDto {
   name: string;
 
   @ApiProperty({
-    description: 'The email of the user',
+    description: 'User email address',
     example: 'john.doe@example.com',
+    format: 'email',
   })
   @IsString({ message: 'Email must be a string' })
   @IsNotEmpty({ message: 'Email is required' })
@@ -27,8 +28,11 @@ export class RegisterRequestDto {
   email: string;
 
   @ApiProperty({
-    description: 'The password of the user',
+    description: 'Password (min 8 characters)',
     example: 'SecurePassword123',
+    minLength: 8,
+    maxLength: 100,
+    format: 'password',
   })
   @IsString({ message: 'Password must be a string' })
   @IsNotEmpty({ message: 'Password is required' })
